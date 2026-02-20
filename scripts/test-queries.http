@@ -1,0 +1,125 @@
+### Variables
+@patientApi = http://localhost:3001
+@eventProducer = http://localhost:3002
+@indexerService = http://localhost:3003
+@queryService = http://localhost:3004
+@aiQueryService = http://localhost:3005
+
+### Patient API - Health
+GET {{patientApi}}/health
+X-Request-ID: req-health-patient-api
+
+### Event Producer - Health
+GET {{eventProducer}}/health
+X-Request-ID: req-health-event-producer
+
+### Indexer Service - Health
+GET {{indexerService}}/health
+X-Request-ID: req-health-indexer
+
+### Query Service - Health
+GET {{queryService}}/health
+X-Request-ID: req-health-query-service
+
+### AI Query Service - Health
+GET {{aiQueryService}}/health
+X-Request-ID: req-health-ai-query
+
+### Patient API - Create Event
+POST {{patientApi}}/events
+Content-Type: application/json
+X-Request-ID: req-create-event-001
+
+{
+  "patientId": "P-0001",
+  "eventType": "lab_result",
+  "severity": "warning",
+  "department": "cardiology",
+  "data": {
+    "testName": "Troponin",
+    "resultValue": 0.12,
+    "unit": "ng/mL",
+    "flagged": true
+  },
+  "timestamp": "2026-02-20T14:30:00Z"
+}
+
+### Patient API - Get Events By Patient
+GET {{patientApi}}/events/P-0001
+X-Request-ID: req-get-events-001
+
+### Query Service - Search (free text + filters)
+GET {{queryService}}/search?q=cardiology&severity=critical&from=2026-02-01T00:00:00Z&to=2026-02-20T23:59:59Z&page=1&limit=20
+X-Request-ID: req-query-search-001
+
+### Query Service - Search (lab warning today)
+GET {{queryService}}/search?eventType=lab_result&severity=warning&from=2026-02-20T00:00:00Z&to=2026-02-20T23:59:59Z&page=1&limit=20
+X-Request-ID: req-query-search-002
+
+### Query Service - Aggregations
+GET {{queryService}}/search/aggregations?from=2026-02-01T00:00:00Z&to=2026-02-20T23:59:59Z
+X-Request-ID: req-query-agg-001
+
+### Query Service - Raw DSL Search
+POST {{queryService}}/search/dsl
+Content-Type: application/json
+X-Request-ID: req-query-dsl-001
+
+{
+  "dsl": {
+    "query": {
+      "bool": {
+        "filter": [
+          { "term": { "severity": "critical" } },
+          { "term": { "department.keyword": "cardiology" } },
+          {
+            "range": {
+              "timestamp": {
+                "gte": "2026-02-13T00:00:00Z",
+                "lte": "2026-02-20T23:59:59Z"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "page": 1,
+  "limit": 20
+}
+
+### AI Query Service - AI Search Example 1
+POST {{aiQueryService}}/ai-search
+Content-Type: application/json
+X-Request-ID: req-ai-search-001
+
+{
+  "query": "show me critical patients from cardiology this week"
+}
+
+### AI Query Service - AI Search Example 2
+POST {{aiQueryService}}/ai-search
+Content-Type: application/json
+X-Request-ID: req-ai-search-002
+
+{
+  "query": "all lab results with warning severity today"
+}
+
+### AI Query Service - AI Search Example 3
+POST {{aiQueryService}}/ai-search
+Content-Type: application/json
+X-Request-ID: req-ai-search-003
+
+{
+  "query": "discharged patients from neurology last 48 hours"
+}
+
+### AI Query Service - AI Search Example 4
+POST {{aiQueryService}}/ai-search
+Content-Type: application/json
+X-Request-ID: req-ai-search-004
+
+{
+  "query": "show admission events in emergency department with normal severity in the last 3 days"
+}
