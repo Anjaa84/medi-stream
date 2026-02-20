@@ -1,0 +1,145 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: medi-stream-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: medi-stream-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  mongodb:
+    image: mongo:7
+    container_name: medi-stream-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: medi-stream-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  patient-api:
+    build:
+      context: ./patient-api
+      dockerfile: Dockerfile
+    container_name: medi-stream-patient-api
+    env_file:
+      - .env
+    environment:
+      PORT: ${PATIENT_API_PORT}
+    depends_on:
+      - kafka
+      - mongodb
+    volumes:
+      - ./patient-api:/app
+      - /app/node_modules
+    ports:
+      - "${PATIENT_API_PORT}:${PATIENT_API_PORT}"
+    command: npm run dev
+
+  event-producer:
+    build:
+      context: ./event-producer
+      dockerfile: Dockerfile
+    container_name: medi-stream-event-producer
+    env_file:
+      - .env
+    environment:
+      PORT: ${EVENT_PRODUCER_PORT}
+    depends_on:
+      - kafka
+    volumes:
+      - ./event-producer:/app
+      - /app/node_modules
+    ports:
+      - "${EVENT_PRODUCER_PORT}:${EVENT_PRODUCER_PORT}"
+    command: npm run dev
+
+  indexer-service:
+    build:
+      context: ./indexer-service
+      dockerfile: Dockerfile
+    container_name: medi-stream-indexer-service
+    env_file:
+      - .env
+    environment:
+      PORT: ${INDEXER_SERVICE_PORT}
+    depends_on:
+      - kafka
+      - elasticsearch
+    volumes:
+      - ./indexer-service:/app
+      - /app/node_modules
+    ports:
+      - "${INDEXER_SERVICE_PORT}:${INDEXER_SERVICE_PORT}"
+    command: npm run dev
+
+  query-service:
+    build:
+      context: ./query-service
+      dockerfile: Dockerfile
+    container_name: medi-stream-query-service
+    env_file:
+      - .env
+    environment:
+      PORT: ${QUERY_SERVICE_PORT}
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./query-service:/app
+      - /app/node_modules
+    ports:
+      - "${QUERY_SERVICE_PORT}:${QUERY_SERVICE_PORT}"
+    command: npm run dev
+
+  ai-query-service:
+    build:
+      context: ./ai-query-service
+      dockerfile: Dockerfile
+    container_name: medi-stream-ai-query-service
+    env_file:
+      - .env
+    environment:
+      PORT: ${AI_QUERY_SERVICE_PORT}
+    depends_on:
+      - query-service
+    volumes:
+      - ./ai-query-service:/app
+      - /app/node_modules
+    ports:
+      - "${AI_QUERY_SERVICE_PORT}:${AI_QUERY_SERVICE_PORT}"
+    command: npm run dev
+
+volumes:
+  mongo_data:
+  es_data:

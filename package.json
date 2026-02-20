@@ -1,0 +1,25 @@
+{
+  "name": "medi-stream",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "patient-api",
+    "event-producer",
+    "indexer-service",
+    "query-service",
+    "ai-query-service",
+    "shared"
+  ],
+  "scripts": {
+    "up": "docker compose up --build",
+    "down": "docker compose down",
+    "logs": "docker compose logs -f",
+    "ps": "docker compose ps",
+    "dev:patient-api": "npm --workspace patient-api run dev",
+    "dev:event-producer": "npm --workspace event-producer run dev",
+    "dev:indexer-service": "npm --workspace indexer-service run dev",
+    "dev:query-service": "npm --workspace query-service run dev",
+    "dev:ai-query-service": "npm --workspace ai-query-service run dev"
+  }
+}
