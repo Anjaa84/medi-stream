@@ -7,6 +7,7 @@ import {
   formatSearchResponse,
   formatAggregationResponse
 } from './search.js';
+import { parseDslPayload, formatDslSearchResponse } from './dsl.js';
 
 export function createApp({ config, services }) {
   const app = express();
@@ -65,6 +66,27 @@ export function createApp({ config, services }) {
 
       res.status(200).json({
         aggregations,
+        requestId: req.requestId
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post('/search/dsl', async (req, res, next) => {
+    try {
+      const { dsl, page, limit } = parseDslPayload(req.body);
+      const from = (page - 1) * limit;
+      const response = await services.elastic.search({
+        query: dsl.query,
+        from,
+        size: limit,
+        sort: dsl.sort
+      });
+
+      const formatted = formatDslSearchResponse(response, page, limit);
+      res.status(200).json({
+        ...formatted,
         requestId: req.requestId
       });
     } catch (error) {

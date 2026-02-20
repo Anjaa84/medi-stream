@@ -19,14 +19,14 @@ export function createElasticClient(config) {
       return true;
     },
 
-    async search({ query, from, size }) {
+    async search({ query, from, size, sort }) {
       const response = await client.search({
         index: config.elasticsearchIndex,
         timeout: ES_QUERY_TIMEOUT,
         from,
         size,
         query,
-        sort: [{ timestamp: { order: 'desc' } }]
+        sort: Array.isArray(sort) && sort.length > 0 ? sort : [{ timestamp: { order: 'desc' } }]
       });
 
       return response;
