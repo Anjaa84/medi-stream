@@ -9,8 +9,10 @@
     "start": "node src/index.js"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^8.15.0",
     "dotenv": "^16.4.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "kafkajs": "^2.2.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

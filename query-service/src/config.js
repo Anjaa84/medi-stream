@@ -18,10 +18,15 @@ export function loadConfig() {
     );
   }
 
+  const port = Number(process.env.PORT);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error('PORT must be a positive integer');
+  }
+
   return {
     serviceName: 'query-service',
     nodeEnv: process.env.NODE_ENV,
-    port: Number(process.env.PORT),
+    port,
     elasticsearchUrl: process.env.ELASTICSEARCH_URL,
     elasticsearchIndex: process.env.ELASTICSEARCH_INDEX
   };

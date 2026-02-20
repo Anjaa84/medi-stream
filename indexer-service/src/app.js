@@ -1,7 +1,7 @@
 import express from 'express';
 import { randomUUID } from 'node:crypto';
 
-export function createApp(config) {
+export function createApp({ config, services }) {
   const app = express();
 
   app.disable('x-powered-by');
@@ -23,8 +23,36 @@ export function createApp(config) {
     next();
   });
 
-  app.get('/health', (_req, res) => {
-    res.status(200).json({ service: config.serviceName, status: 'ok' });
+  app.get('/health', async (req, res) => {
+    const response = {
+      service: config.serviceName,
+      status: 'ok',
+      dependencies: {
+        kafka: 'up',
+        elasticsearch: 'up'
+      },
+      requestId: req.requestId
+    };
+
+    let statusCode = 200;
+
+    try {
+      await services.checkKafkaHealth();
+    } catch (_error) {
+      response.status = 'degraded';
+      response.dependencies.kafka = 'down';
+      statusCode = 503;
+    }
+
+    try {
+      await services.checkElasticHealth();
+    } catch (_error) {
+      response.status = 'degraded';
+      response.dependencies.elasticsearch = 'down';
+      statusCode = 503;
+    }
+
+    res.status(statusCode).json(response);
   });
 
   app.use((_req, res) => {
