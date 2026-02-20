@@ -50,9 +50,10 @@ services:
 
   patient-api:
     build:
-      context: ./patient-api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: patient-api/Dockerfile
     container_name: medi-stream-patient-api
+    working_dir: /workspace/patient-api
     env_file:
       - .env
     environment:
@@ -61,8 +62,10 @@ services:
       - kafka
       - mongodb
     volumes:
-      - ./patient-api:/app
-      - /app/node_modules
+      - ./patient-api:/workspace/patient-api
+      - ./event-producer:/workspace/event-producer
+      - /workspace/patient-api/node_modules
+      - /workspace/event-producer/node_modules
     ports:
       - "${PATIENT_API_PORT}:${PATIENT_API_PORT}"
     command: npm run dev

@@ -31,6 +31,11 @@ export function loadConfig() {
     throw new Error('KAFKA_BROKERS must include at least one broker');
   }
 
+  const kafkaMaxMessageBytes = Number(process.env.KAFKA_MAX_MESSAGE_BYTES || 1000000);
+  if (!Number.isInteger(kafkaMaxMessageBytes) || kafkaMaxMessageBytes <= 0) {
+    throw new Error('KAFKA_MAX_MESSAGE_BYTES must be a positive integer');
+  }
+
   return {
     serviceName: 'patient-api',
     nodeEnv: process.env.NODE_ENV,
@@ -39,6 +44,7 @@ export function loadConfig() {
     kafkaBrokers,
     kafkaClientId: process.env.KAFKA_CLIENT_ID,
     kafkaTopicPatientEvents: process.env.KAFKA_TOPIC_PATIENT_EVENTS,
-    kafkaTopicDlq: process.env.KAFKA_TOPIC_DLQ
+    kafkaTopicDlq: process.env.KAFKA_TOPIC_DLQ,
+    kafkaMaxMessageBytes
   };
 }

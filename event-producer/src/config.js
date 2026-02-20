@@ -20,13 +20,31 @@ export function loadConfig() {
     );
   }
 
+  const port = Number(process.env.PORT);
+  if (!Number.isInteger(port) || port <= 0) {
+    throw new Error('PORT must be a positive integer');
+  }
+
+  const kafkaBrokers = process.env.KAFKA_BROKERS.split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  if (kafkaBrokers.length === 0) {
+    throw new Error('KAFKA_BROKERS must include at least one broker');
+  }
+
+  const kafkaMaxMessageBytes = Number(process.env.KAFKA_MAX_MESSAGE_BYTES || 1000000);
+  if (!Number.isInteger(kafkaMaxMessageBytes) || kafkaMaxMessageBytes <= 0) {
+    throw new Error('KAFKA_MAX_MESSAGE_BYTES must be a positive integer');
+  }
+
   return {
     serviceName: 'event-producer',
     nodeEnv: process.env.NODE_ENV,
-    port: Number(process.env.PORT),
-    kafkaBrokers: process.env.KAFKA_BROKERS.split(',').map((v) => v.trim()),
+    port,
+    kafkaBrokers,
     kafkaClientId: process.env.KAFKA_CLIENT_ID,
     kafkaTopicPatientEvents: process.env.KAFKA_TOPIC_PATIENT_EVENTS,
-    kafkaTopicDlq: process.env.KAFKA_TOPIC_DLQ
+    kafkaTopicDlq: process.env.KAFKA_TOPIC_DLQ,
+    kafkaMaxMessageBytes
   };
 }

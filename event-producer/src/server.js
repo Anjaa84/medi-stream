@@ -1,26 +1,16 @@
 import { createApp } from './app.js';
 import { loadConfig } from './config.js';
-import { connectMongo, disconnectMongo, checkMongoHealth } from './db.js';
-import { createPatientEventProducer } from 'event-producer';
-import './models/patientEvent.js';
+import { createPatientEventProducer } from './producer.js';
 
-let kafka;
+let producer;
 let server;
 
 async function bootstrap() {
   const config = loadConfig();
+  producer = createPatientEventProducer(config);
+  await producer.connect();
 
-  await connectMongo(config.mongodbUri);
-  kafka = createPatientEventProducer(config);
-  await kafka.connect();
-
-  const app = createApp({
-    config,
-    services: {
-      kafka,
-      checkMongoHealth
-    }
-  });
+  const app = createApp({ config, producer });
 
   server = app.listen(config.port, () => {
     console.log(`[${config.serviceName}] listening on port ${config.port}`);
@@ -33,7 +23,7 @@ async function bootstrap() {
       await new Promise((resolve) => server.close(resolve));
     }
 
-    await Promise.allSettled([disconnectMongo(), kafka?.disconnect()]);
+    await producer.disconnect();
     process.exit(0);
   };
 
@@ -53,7 +43,7 @@ async function bootstrap() {
 }
 
 bootstrap().catch(async (error) => {
-  console.error(`[patient-api] startup failed: ${error.message}`);
-  await Promise.allSettled([disconnectMongo(), kafka?.disconnect()]);
+  console.error(`[event-producer] startup failed: ${error.message}`);
+  await producer?.disconnect();
   process.exit(1);
 });
